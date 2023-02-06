@@ -1,0 +1,210 @@
+---
+title: 'CMTH 642 Data Analytics: Advanced Methods'
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+<center> <h1> Assignment 1 (10%) </h1> </center>
+<center>  <h3> Ann Sam </h2> </center>
+<center> <h3> Section DHA - Student #501160843 </h2> </center>
+---
+
+#### 1. Read the csv files in the folder. (4 points)
+```{r}
+df1 <- read.csv(file="C:/Users/annsa/Desktop/05 CMTH642/Assignment1/USDA_Micronutrients.csv", header=TRUE, sep=",")
+df2 <- read.csv(file="C:/Users/annsa/Desktop/05 CMTH642/Assignment1/USDA_Macronutrients.csv", header=TRUE, sep=",")
+head(df1)
+head(df2)
+```
+
+#### 2. Merge the data frames using the variable "ID". Name the Merged Data Frame "USDA". (4 points)
+```{r}
+USDA <- merge(df1, df2, by="ID")
+head(USDA)
+```
+
+#### 3. Check the datatypes of the attributes. Delete the commas in the Sodium and Potasium records. Assign Sodium and Potasium as numeric data types. (4 points)
+```{r}
+str(USDA)
+USDA$Sodium <- as.numeric(gsub(",", "", USDA$Sodium))
+USDA$Potassium <- as.numeric(gsub(",", "", USDA$Potassium))
+#check the data types for Sodium and Potassium are numeric:
+sapply(USDA, class)
+```
+
+#### 4. Remove records (rows) with missing values in more than 6 attributes (columns). How many records remain in the data frame? (4 points)
+```{r}
+cleanedUSDA <- USDA[rowSums(is.na(USDA))<7,]
+str(cleanedUSDA)
+#Count how rows in new cleanedUSDA df:
+nrow(cleanedUSDA)
+```
+
+#### 5. For records with missing values for Sugar, Vitamin E and Vitamin D, replace missing values with mean value for the respective variable. (4 points)
+```{r}
+cleanedUSDA$Sugar[is.na(cleanedUSDA$Sugar)] <- mean(cleanedUSDA$Sugar, na.rm = TRUE)
+cleanedUSDA$VitaminE[is.na(cleanedUSDA$VitaminE)] <- mean(cleanedUSDA$VitaminE, na.rm = TRUE)
+cleanedUSDA$VitaminD[is.na(cleanedUSDA$VitaminD)] <- mean(cleanedUSDA$VitaminD, na.rm = TRUE)
+#Check that the replacement occurred and no more NA values in those columns
+summary(cleanedUSDA)
+```
+
+#### 6. With a single line of code, remove all remaining records with missing values. Name the new Data Frame "USDAclean". How many records remain in the data frame? (4 points)
+```{r}
+USDAclean <- na.omit(cleanedUSDA)
+#Check that the remaining NAs have been omitted
+summary(USDAclean)
+#Count how rows in new USDAclean df:
+nrow(USDAclean)
+```
+
+#### 7. Which food has the highest sodium level? (4 points)
+```{r}
+USDAclean[which.max(USDAclean$Sodium),]
+```
+
+#### 8. Create a histogram of Vitamin C distribution in foods. (4 points)
+```{r}
+hist(USDAclean$VitaminC, main = "Vitamin C Distribution in Foods", xlab = "Vitamin C", col = "goldenrod")
+```
+
+#### 9. Create one boxplot to illustrate the distribution of values for TotalFat, Protein and Carbohydrate. (4 points)
+```{r}
+boxplot(USDAclean$TotalFat, USDAclean$Protein, USDAclean$Carbohydrate, main = "Boxplot of Total Fat, Protein, and Carbohydrate", names = c("Total Fat", "Protein", "Carbohydrate"), ylab = "Value", col = c("salmon", "lightblue", "plum"))
+```
+
+#### 10. Create a scatterplot to illustrate the relationship between a food's TotalFat content and its Calorie content. (4 points)
+```{r}
+plot(USDAclean$TotalFat, USDAclean$Calories, main = "Total Fat vs. Calories", xlab="Total Fat", ylab = "Calories", col = "darkcyan")
+```
+
+#### 11. Add a variable to the data frame that takes value 1 if the food has higher sodium than average, 0 otherwise. Call this variable HighSodium. Do the same for High Calories, High Protein, High Sugar, and High Fat. How many foods have both high sodium and high fat? (4 points)
+```{r}
+USDAclean$HighSodium = 0
+USDAclean$HighSodium[USDAclean$Sodium > mean(USDAclean$Sodium)] = 1
+USDAclean$HighCalories = 0
+USDAclean$HighCalories[USDAclean$Calories > mean(USDAclean$Calories)] = 1
+USDAclean$HighProtein = 0
+USDAclean$HighProtein[USDAclean$Protein > mean(USDAclean$Protein)] = 1
+USDAclean$HighSugar = 0
+USDAclean$HighSugar[USDAclean$Sugar > mean(USDAclean$Sugar)] = 1
+USDAclean$HighTotalFat = 0
+USDAclean$HighTotalFat[USDAclean$TotalFat > mean(USDAclean$TotalFat)] = 1
+#Check to see that new variables are added to df:
+summary(USDAclean)
+#How many foods have both high sodium and high fat:
+cat(sum(apply(USDAclean[c("HighSodium", "HighTotalFat")], 1, function(x) sum(x) == 2)))
+```
+
+#### 12. Calculate the average amount of iron, for high and low protein foods. (4 points)
+```{r}
+#Where High Protein = 1 and Low Protein = 0
+with(USDAclean, tapply(Iron, HighProtein, mean))
+```
+
+#### 13. Create a function for a "HealthCheck" program to detect unhealthy foods. Use the algorithm flowchart below as a basis. (4 points)
+```{r}
+require(jpeg)
+img<-readJPEG("HealthCheck.jpg")
+plot(1:4, ty = 'n', ann = F, xaxt = 'n', yaxt = 'n')
+rasterImage(img,1,1,4,4)
+```
+```{r}
+HealthCheck <- function(sodium, sugar, fat){
+  ifelse (sodium==0, "Pass", ifelse (sugar==0, "Pass", ifelse (fat==0, "Pass", "Fail")))
+}
+```
+
+#### 14. Add a new variable called HealthCheck to the data frame using the output of the function. (4 points)
+```{r}
+USDAclean$HealthCheck <- HealthCheck(USDAclean$HighSodium, USDAclean$HighSugar, USDAclean$HighTotalFat)
+#Check to see that new variables are added to df:
+summary(USDAclean)
+```
+
+#### 15. How many foods in the USDAclean data frame fail the HealthCheck? (4 points)
+```{r}
+sum(USDAclean=="Fail")
+```
+
+#### 16. Visualize the correlation among Calories, Protein, Total Fat, Carbohydrate, Sodium and Cholesterol. (4 points)
+```{r}
+subsetData <- c("Calories", "Protein", "TotalFat", "Carbohydrate", "Sodium", "Cholesterol")
+USDAcleanSubet <- USDAclean[subsetData]
+subsetMatrix <- cor(USDAcleanSubet, method = "pearson")
+subsetMatrix
+#visualize correlation as a heat map:
+heatmap(subsetMatrix)
+```
+
+#### 17. Is the correlation between Calories and Total Fat statistically significant? Why? (4 points)
+```{r}
+cor.test(USDAcleanSubet$Calories, USDAcleanSubet$TotalFat)
+#The p-value calculated using core.test() Pearson's product-moment correlation between Calories and Total Fat is less than 0.05 therefore there is a statistical significance between the two variables.
+```
+
+#### 18. Create a Linear Regression Model, using Calories as the dependent variable Protein, Total Fat, Carbohydrate, Sodium and Cholesterol as the independent variables. (4 points)
+```{r}
+CaloriesLM <- lm(Calories ~ Protein + TotalFat + Carbohydrate + Sodium + Cholesterol, data=USDAclean)
+summary(CaloriesLM)
+```
+
+#### 19. Which independent variable is the least significant? Why? (4 points)
+```{r}
+#From the summary report, we can see under the Coefficients sections that the Pr(>|t|) value for independent variable Sodium is 0.122 while the other variables are much smaller and less than 0.05. We can interpret the Signif. codes that the other variables with "***" have a higher significant p-value, therefore we can conclude that Sodium is the least significant.
+```
+
+#### 20. Create a new model by using only the significant independent variables. (4 points)
+```{r}
+newCaloriesLM <- lm(Calories ~ Protein + TotalFat + Carbohydrate + Cholesterol, data=USDAclean)
+summary(newCaloriesLM)
+```
+
+#### 21. A new product is just produced with the following data: Protein=0.1, TotalFat=37, Carbohydrate=400, Cholesterol=75, Sugar=NA, Calcium=35, Iron=NA, Potassium=35, VitaminC=10,	VitaminE=NA, VitaminD=NA. Based on the new model you created, what is the predicted value for Calories? (4 points)
+```{r}
+newProduct = data.frame(Protein=0.1, TotalFat=37, Carbohydrate=400, Cholesterol=75)
+#predict the value for calories given the new product data:
+newProdCal <- round(predict(newCaloriesLM, newProduct))
+newProdCal
+```
+
+#### 22. If the Carbohydrate amount increases from 400 to 40000 (10000% increase), how much change will occur on Calories in percent? Explain why? (4 points)
+```{r}
+ProductX = data.frame(Protein=0.1, TotalFat=37, Carbohydrate=40000, Cholesterol=75)
+#Calculate the change in percent in calories given ProductX data:
+ProdXCal <- round(predict(newCaloriesLM, ProductX))
+percentChange <- (ProdXCal/newProdCal)*100
+percentChange
+#If the carbohydrate amount increases from 400 to 40,000 which is a 10,000% increase, we calculated that the predicted calorie count will have a 8,214.78% increase. The carbohydrate variable is not a 100% correlated with calorie count, in fact we can see from Q16 that there is a moderately positive correlation between calories and carbohydrates which aligns with what we see, when carbohydrates goes up, than so will calories. But since the correlation is not perfect (1.0), we do not expect the percent increase to be exactly the same or 10,000%. 
+```
+#### 23. Prepare an exploratory data analysis question about the dataset. Write a code to answer your question. Visualise your answer. (Your question should be related to at least three attributes) (12 points)
+```{r}
+#EDA Question: Does the dataset have outliers and determine whether they need to be dealt with and if so or not, why.
+#Data visualization using boxplots:
+plot_boxplots <- function(variables) {
+  x <- c(2:10,12:15)
+  par(mfrow=c(2,2))
+  for (i in x){
+    boxplot(variables[i],main=names(variables[i]), xlab="Amount", horizontal=TRUE, col="lightseagreen")
+  }
+}
+
+plot_boxplots(USDAclean)
+
+#In looking at the individual boxplots of the numerical variables, we can identify that there are extreme values and outliers that exist within the dataset. We must remember that there is a difference between the two where extreme values may be values at boundaries of the domain while outliers are data points that may be inconsistent with the rest of the dataset. To further answer our question on how to handle any outliers, we must conduct further analyses on the variables, especially to determine correlation between the extreme values or outlier before omiting them from the dataset. As we are aware of our target variable, Calories, we can view correlation between the variables in a correlogram to further analyze:
+
+#install.packages("corrplot")
+library("corrplot")
+
+EDAsubset <- c("Calories", "Protein", "TotalFat", "Carbohydrate", "Sodium", "Cholesterol", "Sugar", "Calcium", "Iron", "Potassium", "VitaminC", "VitaminE", "VitaminD")
+USDA_EDASubet <- USDAclean[EDAsubset]
+A <-cor(USDA_EDASubet)
+corrplot(A, method="number", order="hclust")
+
+#From the correlogram that displays the correlation coefficients, we can see that when we can cluster the order of the variables to visualize the correlations between the variables. Thus we can say that dependent on what our target variable is, target variable = Calories, we can see that vitaminE, TotalFat, Carbohydrate, and Sugar have the highest correlation coefficient. While Sodium, Cholesterol, and Vitamin C are very low. Therefore, if we were to decide on removing any outliers from the dataset, we can safely assume that for investigating predictor variables for determining Calories, those with low correlation would have small affect on the dataset and could potentially increase accuracy of any modeling by removing data points that may dilute the model.
+```
+
+This is the end of Assignment 1
+
+Ceni Babaoglu, PhD

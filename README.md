@@ -1,2 +1,2 @@
-# CMTH642 Data Analytics: Advanced Methos
+# CMTH642 Data Analytics: Advanced Methods
 TMU Assignments
